@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>貸付管理</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f5f3;
+  --bg2: #ececea;
+  --card: #ffffff;
+  --border: rgba(0,0,0,0.12);
+  --border2: rgba(0,0,0,0.22);
+  --text: #1a1a18;
+  --text2: #5a5a57;
+  --text3: #8a8a87;
+  --green: #1D9E75;
+  --green-bg: #E1F5EE;
+  --green-text: #0F6E56;
+  --amber: #BA7517;
+  --amber-bg: #FAEEDA;
+  --amber-text: #854F0B;
+  --red-bg: #FEECEC;
+  --red-text: #A32D2D;
+  --blue-bg: #E6F1FB;
+  --blue-text: #185FA5;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1a;
+    --bg2: #252523;
+    --card: #2c2c2a;
+    --border: rgba(255,255,255,0.1);
+    --border2: rgba(255,255,255,0.2);
+    --text: #f0f0ee;
+    --text2: #b0b0ae;
+    --text3: #787876;
+    --green-bg: #04342C;
+    --green-text: #9FE1CB;
+    --amber-bg: #412402;
+    --amber-text: #FAC775;
+    --red-bg: #501313;
+    --red-text: #F7C1C1;
+    --blue-bg: #042C53;
+    --blue-text: #B5D4F4;
+  }
+}
+body { background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; color: var(--text); min-height: 100vh; }
+.view { display: none; }
+.view.active { display: block; }
+.wrap { padding: 1rem; max-width: 480px; margin: 0 auto; padding-bottom: 2rem; }
+
+.mode-banner { background: var(--blue-bg); color: var(--blue-text); text-align: center; padding: 8px 12px; font-size: 12px; font-weight: 600; }
+.conn-status { text-align: center; padding: 4px; font-size: 11px; }
+.conn-status.online { background: var(--green-bg); color: var(--green-text); }
+.conn-status.offline { background: var(--amber-bg); color: var(--amber-text); }
+.conn-status.error { background: var(--red-bg); color: var(--red-text); }
+
+.balance-card { background: var(--bg2); border-radius: var(--radius); padding: 1.5rem 1.25rem; margin-bottom: 1rem; text-align: center; }
+.balance-label { font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+.balance-num { font-size: 40px; font-weight: 600; color: var(--text); letter-spacing: -0.5px; }
+
+.stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+.stat-card { background: var(--bg2); border-radius: var(--radius-sm); padding: 0.75rem; text-align: center; }
+.stat-label { font-size: 11px; color: var(--text3); margin-bottom: 3px; }
+.stat-val { font-size: 18px; font-weight: 600; color: var(--text); }
+
+.btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+.btn-meet { background: var(--green); color: #E1F5EE; border: none; border-radius: var(--radius-sm); padding: 16px 8px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; line-height: 1.4; }
+.btn-meet:active { opacity: 0.82; }
+.btn-loan { background: var(--card); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); padding: 16px 8px; font-size: 14px; color: var(--text); cursor: pointer; width: 100%; }
+.btn-loan:active { opacity: 0.7; }
+
+.add-form { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem; display: none; }
+.add-form.open { display: block; }
+.form-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+.field-group { margin-top: 10px; }
+.field-group label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px; }
+.add-form input { width: 100%; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 16px; background: var(--bg2); color: var(--text); -webkit-appearance: none; }
+.add-form input:focus { outline: none; border-color: var(--green); }
+.preset-row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.pbt { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 99px; padding: 6px 14px; font-size: 13px; color: var(--text2); cursor: pointer; }
+.pbt:active { opacity: 0.7; }
+.pbt.sel-green { background: var(--green); color: #E1F5EE; border-color: var(--green); }
+.pbt.sel-amber { background: var(--amber); color: var(--amber-bg); border-color: var(--amber); }
+.divider { border: none; border-top: 0.5px solid var(--border); margin: 14px 0 0; }
+.section-label { font-size: 11px; color: var(--text3); margin: 10px 0 6px; }
+.hint { font-size: 11px; color: var(--text3); margin-top: 5px; }
+.add-form-btns { display: flex; gap: 8px; margin-top: 14px; }
+.btn-confirm { flex: 1; background: var(--blue-bg); color: var(--blue-text); border: none; border-radius: var(--radius-sm); padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn-confirm:active { opacity: 0.8; }
+.btn-cancel2 { flex: 1; background: var(--bg2); color: var(--text2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-size: 15px; cursor: pointer; }
+
+.btn-history { width: 100%; background: transparent; border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px; font-size: 14px; color: var(--text2); cursor: pointer; margin-bottom: 1rem; }
+.btn-history:active { background: var(--bg2); }
+
+.hist-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; padding-top: 0.25rem; }
+.btn-back { background: transparent; border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 9px 16px; font-size: 14px; color: var(--text2); cursor: pointer; }
+.hist-title { font-size: 17px; font-weight: 600; color: var(--text); }
+
+.summary-bar { background: var(--bg2); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 1rem; display: grid; grid-template-columns: 1fr 1fr 1fr; }
+.sum-item { text-align: center; }
+.sum-label { font-size: 10px; color: var(--text3); }
+.sum-val { font-size: 13px; font-weight: 600; color: var(--text); margin-top: 3px; }
+
+.filter-row { display: flex; gap: 6px; margin-bottom: 1rem; }
+.fbtn { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 99px; padding: 6px 16px; font-size: 12px; color: var(--text2); cursor: pointer; }
+.fbtn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+.origin-box { background: var(--bg2); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 10px; }
+.origin-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+.origin-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); padding: 4px 0; border-bottom: 0.5px solid var(--border); }
+.origin-row:last-child { border-bottom: none; }
+
+.tx-list { display: flex; flex-direction: column; gap: 8px; }
+.tx-item { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.tx-item.is-locked { border-left: 3px solid var(--green); }
+.tx-body { padding: 11px 12px; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.tx-left { flex: 1; min-width: 0; }
+.tx-type { font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tx-date { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.tx-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.tx-amount { font-size: 15px; font-weight: 600; }
+.tx-amount.neg { color: var(--green); }
+.tx-amount.pos { color: #E24B4A; }
+.tx-balance { font-size: 11px; color: var(--text3); }
+.tx-cash-row { display: flex; align-items: center; gap: 6px; padding: 4px 12px 0; }
+.cash-badge { font-size: 11px; background: var(--amber-bg); color: var(--amber-text); border-radius: 4px; padding: 2px 8px; font-weight: 600; }
+.cash-label { font-size: 11px; color: var(--text3); }
+
+.tx-action-bar { display: flex; gap: 6px; padding: 7px 10px 9px; justify-content: flex-end; }
+.btn-del-bar { display: flex; align-items: center; gap: 4px; background: var(--red-bg); color: var(--red-text); border: none; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-lock-bar { display: flex; align-items: center; gap: 4px; background: var(--green-bg); color: var(--green-text); border: none; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.tx-locked-bar { display: flex; align-items: center; justify-content: flex-end; padding: 4px 10px 8px; gap: 5px; }
+.locked-badge { font-size: 10px; background: var(--green-bg); color: var(--green-text); border-radius: 4px; padding: 2px 7px; font-weight: 600; }
+.locked-note { font-size: 10px; color: var(--text3); }
+
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: flex-end; justify-content: center; z-index: 100; padding: 1rem; }
+.overlay.hidden { display: none; }
+.sheet { background: var(--card); border-radius: var(--radius); padding: 1.5rem; width: 100%; max-width: 440px; }
+.sheet-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.sheet-meta { font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+.sheet-warn { font-size: 12px; color: var(--red-text); background: var(--red-bg); border-radius: 6px; padding: 8px 10px; margin-bottom: 1rem; }
+.sheet-info { font-size: 12px; color: var(--green-text); background: var(--green-bg); border-radius: 6px; padding: 8px 10px; margin-bottom: 1rem; }
+.sheet-btns { display: flex; gap: 8px; }
+.btn-ok { flex: 1; border: none; border-radius: var(--radius-sm); padding: 14px; font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn-ok.danger { background: var(--red-bg); color: var(--red-text); }
+.btn-ok.success { background: var(--green); color: #E1F5EE; }
+.btn-ng { flex: 1; background: var(--bg2); color: var(--text2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px; font-size: 15px; cursor: pointer; }
+
+.empty { text-align: center; padding: 2.5rem; font-size: 13px; color: var(--text3); }
+.toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 11px 22px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; white-space: nowrap; }
+.toast.show { opacity: 1; }
+
+.setup-screen { padding: 2rem 1.5rem; max-width: 480px; margin: 0 auto; text-align: center; }
+.setup-screen h2 { font-size: 18px; margin-bottom: 12px; }
+.setup-screen p { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 8px; }
+.setup-screen code { background: var(--bg2); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+</style>
+
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<!-- ========== 接続ステータス ========== -->
+<div class="conn-status" id="conn-status" style="display:none;"></div>
+
+<!-- ========== 閲覧モードバナー ========== -->
+<div class="mode-banner" id="view-banner" style="display:none;">閲覧モード（優ちゃん用）</div>
+
+<!-- ========== Firebase未設定画面 ========== -->
+<div class="setup-screen" id="setup-screen" style="display:none;">
+  <h2>Firebase設定が必要です</h2>
+  <p>このアプリを使うには、Firebase Realtime Databaseの設定が必要です。</p>
+  <p>HTML内の <code>firebaseConfig</code> を自分のFirebaseプロジェクトの値に書き換えてください。</p>
+</div>
+
+<!-- ========== メイン画面 ========== -->
+<div class="view active" id="view-main">
+<div class="wrap">
+  <div class="balance-card">
+    <div class="balance-label">現在の貸付残高</div>
+    <div class="balance-num" id="balance-display">...</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">累計貸付</div><div class="stat-val" id="total-lent">...</div></div>
+    <div class="stat-card"><div class="stat-label">累計現金渡し</div><div class="stat-val" id="total-cash">...</div></div>
+  </div>
+
+  <!-- 編集用ボタン（閲覧モードでは非表示） -->
+  <div class="btn-row" id="edit-buttons">
+    <button class="btn-meet" onclick="openMeetForm()">会った<br><span style="font-size:11px;font-weight:400">（残高調整＋現金記録）</span></button>
+    <button class="btn-loan" onclick="openLoanForm()">追加で貸す +</button>
+  </div>
+
+  <div class="add-form" id="meet-form">
+    <div class="form-title">会った記録</div>
+    <div class="field-group"><label>場所・メモ</label><input type="text" id="meet-place" placeholder="例: 池袋ラブホ" maxlength="40" /></div>
+    <hr class="divider">
+    <div class="section-label">残高を減らす金額</div>
+    <input type="number" id="meet-amount" placeholder="例: 20000" step="1000" oninput="syncGP()" />
+    <div class="preset-row" id="gp">
+      <button class="pbt" onclick="setGA(10000)">-1万</button>
+      <button class="pbt sel-green" onclick="setGA(20000)">-2万</button>
+      <button class="pbt" onclick="setGA(30000)">-3万</button>
+      <button class="pbt" onclick="setGA(0)">減らさない</button>
+    </div>
+    <hr class="divider">
+    <div class="section-label">現金で渡した金額（任意）</div>
+    <input type="number" id="cash-amount" placeholder="0または空欄でなし" step="1000" oninput="syncAP()" />
+    <div class="preset-row" id="ap">
+      <button class="pbt" onclick="setAA(0)">なし</button>
+      <button class="pbt" onclick="setAA(5000)">5千</button>
+      <button class="pbt sel-amber" onclick="setAA(10000)">1万</button>
+      <button class="pbt" onclick="setAA(20000)">2万</button>
+    </div>
+    <div class="hint">※ 現金は残高に影響しません。記録のみ。</div>
+    <div class="add-form-btns">
+      <button class="btn-confirm" onclick="recordMeeting()">記録する</button>
+      <button class="btn-cancel2" onclick="closeForms()">キャンセル</button>
+    </div>
+  </div>
+
+  <div class="add-form" id="loan-form">
+    <div class="form-title">追加貸付を記録</div>
+    <div class="field-group"><label>金額 (円)</label><input type="number" id="loan-amount" placeholder="例: 20000" step="1000" /></div>
+    <div class="field-group"><label>メモ</label><input type="text" id="loan-memo" placeholder="例: 脱毛代" maxlength="40" /></div>
+    <div class="add-form-btns">
+      <button class="btn-confirm" onclick="addLoan()">追加</button>
+      <button class="btn-cancel2" onclick="closeForms()">キャンセル</button>
+    </div>
+  </div>
+
+  <button class="btn-history" onclick="showHistory()">過去の履歴を見る →</button>
+</div>
+</div>
+
+<!-- ========== 履歴画面 ========== -->
+<div class="view" id="view-history">
+<div class="wrap">
+  <div class="hist-header">
+    <button class="btn-back" onclick="showMain()">← 戻る</button>
+    <div class="hist-title">貸付・会った履歴</div>
+  </div>
+  <div class="summary-bar">
+    <div class="sum-item"><div class="sum-label">表示件数</div><div class="sum-val" id="h-count">-</div></div>
+    <div class="sum-item"><div class="sum-label">残高減少計</div><div class="sum-val" id="h-meet-total">-</div></div>
+    <div class="sum-item"><div class="sum-label">現金渡し計</div><div class="sum-val" id="h-cash-total">-</div></div>
+  </div>
+  <div class="filter-row">
+    <button class="fbtn active" onclick="setFilter('all',this)">すべて</button>
+    <button class="fbtn" onclick="setFilter('meet',this)">会った</button>
+    <button class="fbtn" onclick="setFilter('loan',this)">追加貸付</button>
+  </div>
+  <div class="origin-box" id="origin-box">
+    <div class="origin-label">起点：2024/02/12 確定値（それ以前の集計）</div>
+    <div class="origin-row"><span>累計貸付額</span><span style="font-weight:600">¥447,000</span></div>
+    <div class="origin-row"><span>会った回数</span><span>9+7回（-¥180,000 減額済）</span></div>
+    <div class="origin-row"><span>開始時残高</span><span style="font-weight:600">¥327,000</span></div>
+  </div>
+  <div class="tx-list" id="history-list"></div>
+</div>
+</div>
+
+<!-- ========== 削除確認オーバーレイ ========== -->
+<div class="overlay hidden" id="del-overlay">
+  <div class="sheet">
+    <div class="sheet-title">この記録を削除しますか？</div>
+    <div class="sheet-meta" id="del-meta"></div>
+    <div class="sheet-warn">削除すると残高も戻ります。この操作は取り消せません。</div>
+    <div class="sheet-btns">
+      <button class="btn-ok danger" onclick="confirmDelete()">削除する</button>
+      <button class="btn-ng" onclick="closeOverlays()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 確定確認オーバーレイ ========== -->
+<div class="overlay hidden" id="lock-overlay">
+  <div class="sheet">
+    <div class="sheet-title">この記録を確定しますか？</div>
+    <div class="sheet-meta" id="lock-meta"></div>
+    <div class="sheet-info">確定すると削除・変更できなくなります。内容が正しいことを確認してください。</div>
+    <div class="sheet-btns">
+      <button class="btn-ok success" onclick="confirmLock()">確定する</button>
+      <button class="btn-ng" onclick="closeOverlays()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =====================================================
+// Firebase設定 — ここを自分のプロジェクトの値に書き換える
+// =====================================================
+const firebaseConfig = {
+  apiKey:            "AIzaSyAWshFC2brKVuqzoJRZEbHj3ylaNyDuuoc",
+  authDomain:        "yuuki-tracker.firebaseapp.com",
+  databaseURL:       "https://yuuki-tracker-default-rtdb.firebaseio.com",
+  projectId:         "yuuki-tracker",
+  storageBucket:     "yuuki-tracker.firebasestorage.app",
+  messagingSenderId: "253291724954",
+  appId:             "1:253291724954:web:cc041bf4357e25262edf23"
+};
+// =====================================================
+
+// Firebase未設定チェック
+const isConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
+
+// 閲覧モード判定（URLに ?view が付いていれば閲覧モード）
+const VIEW_MODE = new URLSearchParams(window.location.search).has('view');
+
+// --- 定数 ---
+const PRESET_TXS = [
+  { id:'p1', type:'meet', label:'人形町（ヴィアイン）',      delta:-20000, cash:10000, date:'2024-03-04T12:00:00.000Z', locked:true },
+  { id:'p2', type:'meet', label:'五反田ラブホ',              delta:-20000, cash:10000, date:'2024-04-30T12:00:00.000Z', locked:true },
+  { id:'p3', type:'meet', label:'池袋 VARKIN ANNEX',         delta:-20000, cash:10000, date:'2024-05-24T12:00:00.000Z', locked:true },
+  { id:'p4', type:'meet', label:'八丁堀（ホテル八重の翠）',  delta:-20000, cash:10000, date:'2024-07-05T12:00:00.000Z', locked:true },
+  { id:'p5', type:'meet', label:'八丁堀アパホテル',          delta:-20000, cash:10000, date:'2024-09-04T12:00:00.000Z', locked:true },
+  { id:'p6', type:'meet', label:'秋葉原 APAホテル',          delta:-20000, cash:10000, date:'2025-09-08T12:00:00.000Z', locked:true },
+  { id:'p7', type:'meet', label:'大岡山マンション',          delta:-20000, cash:10000, date:'2026-02-27T12:00:00.000Z', locked:true },
+  { id:'p8', type:'loan', label:'PayPay送金（2026/03/31）',  delta:20000,  cash:0,     date:'2026-03-31T11:22:00.000Z', locked:true },
+];
+const ORIGIN = 447000;
+let uTxs = [];
+let filter = 'all';
+let pendingId = null, pendingAction = null;
+let dbRef = null;
+
+// --- Firebase初期化 ---
+function initFirebase() {
+  if (!isConfigured) {
+    document.getElementById('setup-screen').style.display = 'block';
+    document.getElementById('view-main').classList.remove('active');
+    return;
+  }
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  dbRef = db.ref('yuuki-tracker/transactions');
+
+  // 接続ステータス監視
+  const connRef = db.ref('.info/connected');
+  const statusEl = document.getElementById('conn-status');
+  connRef.on('value', (snap) => {
+    statusEl.style.display = 'block';
+    if (snap.val() === true) {
+      statusEl.className = 'conn-status online';
+      statusEl.textContent = '同期中';
+      setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
+    } else {
+      statusEl.className = 'conn-status offline';
+      statusEl.textContent = 'オフライン — 再接続待ち';
+    }
+  });
+
+  // リアルタイムリスナー
+  dbRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    uTxs = data ? Object.values(data) : [];
+    render();
+    if (document.getElementById('view-history').classList.contains('active')) {
+      renderHistory();
+    }
+  }, (error) => {
+    const statusEl = document.getElementById('conn-status');
+    statusEl.style.display = 'block';
+    statusEl.className = 'conn-status error';
+    statusEl.textContent = '接続エラー: ' + error.message;
+  });
+
+  // localStorageからの移行（初回のみ）
+  migrateFromLocalStorage();
+}
+
+function migrateFromLocalStorage() {
+  try {
+    const oldData = localStorage.getItem('yuuki-v1');
+    if (oldData && dbRef) {
+      const oldTxs = JSON.parse(oldData);
+      if (oldTxs.length > 0) {
+        // Firebase側にデータがなければ移行
+        dbRef.once('value', (snap) => {
+          if (!snap.val()) {
+            const obj = {};
+            oldTxs.forEach(tx => { obj[tx.id] = tx; });
+            dbRef.set(obj).then(() => {
+              localStorage.removeItem('yuuki-v1');
+              toast('既存データをFirebaseに移行しました');
+            });
+          } else {
+            // 既にFirebaseにデータがある場合はローカルを消す
+            localStorage.removeItem('yuuki-v1');
+          }
+        });
+      }
+    }
+  } catch(e) {}
+}
+
+function save() {
+  if (!dbRef) return;
+  const obj = {};
+  uTxs.forEach(tx => { obj[tx.id] = tx; });
+  dbRef.set(obj);
+}
+
+// --- 計算 ---
+function compute() {
+  const all = [...PRESET_TXS, ...uTxs].sort((a,b) => new Date(a.date) - new Date(b.date));
+  let r = ORIGIN;
+  all.forEach(tx => { r += tx.delta; tx._bal = r; });
+  return {
+    balance: all.length ? all[all.length-1]._bal : ORIGIN,
+    totalLent: 447000 + uTxs.filter(t => t.type === 'loan').reduce((s,t) => s + t.delta, 0),
+    totalCash: all.reduce((s,t) => s + (t.cash || 0), 0),
+    all
+  };
+}
+
+const fmt = n => '¥' + Math.abs(n).toLocaleString('ja-JP');
+const fmtD = iso => { const d = new Date(iso); return d.getFullYear() + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0'); };
+
+function render() {
+  const s = compute();
+  document.getElementById('balance-display').textContent = fmt(s.balance);
+  document.getElementById('total-lent').textContent = fmt(s.totalLent);
+  document.getElementById('total-cash').textContent = fmt(s.totalCash);
+}
+
+// --- 画面切り替え ---
+function showMain() {
+  document.getElementById('view-main').classList.add('active');
+  document.getElementById('view-history').classList.remove('active');
+  window.scrollTo(0,0);
+}
+function showHistory() {
+  document.getElementById('view-main').classList.remove('active');
+  document.getElementById('view-history').classList.add('active');
+  renderHistory();
+  window.scrollTo(0,0);
+}
+function setFilter(f, el) {
+  filter = f;
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderHistory();
+}
+
+function renderHistory() {
+  const s = compute();
+  let list = s.all;
+  if (filter === 'meet') list = s.all.filter(t => t.type === 'meet');
+  if (filter === 'loan') list = s.all.filter(t => t.type === 'loan');
+  const mT = list.filter(t => t.type === 'meet').reduce((s,t) => s + Math.abs(t.delta), 0);
+  const cT = list.reduce((s,t) => s + (t.cash || 0), 0);
+  document.getElementById('h-count').textContent = list.length + '件';
+  document.getElementById('h-meet-total').textContent = mT ? '-' + fmt(mT) : '¥0';
+  document.getElementById('h-cash-total').textContent = cT ? fmt(cT) : '¥0';
+  document.getElementById('origin-box').style.display = filter === 'all' ? 'block' : 'none';
+  const el = document.getElementById('history-list');
+  if (!list.length) { el.innerHTML = '<div class="empty">該当する記録がありません</div>'; return; }
+  el.innerHTML = [...list].reverse().map(tx => {
+    const locked = tx.locked;
+    const cashRow = (tx.cash && tx.cash > 0) ? `<div class="tx-cash-row"><span class="cash-badge">現金 ${fmt(tx.cash)}</span><span class="cash-label">手渡し済み</span></div>` : '';
+    let bar;
+    if (VIEW_MODE) {
+      // 閲覧モード: 確定済みバッジのみ、アクションボタンなし
+      bar = locked
+        ? `<div class="tx-locked-bar"><span class="locked-badge">確定済み</span></div>`
+        : '';
+    } else {
+      bar = locked
+        ? `<div class="tx-locked-bar"><span class="locked-badge">確定済み</span><span class="locked-note">削除・変更不可</span></div>`
+        : `<div class="tx-action-bar">
+            <button class="btn-del-bar" onclick="ask('del','${tx.id}','${tx.label.replace(/'/g,"\\'")}','${fmtD(tx.date)}','${fmt(tx.delta)}')">🗑 削除</button>
+            <button class="btn-lock-bar" onclick="ask('lock','${tx.id}','${tx.label.replace(/'/g,"\\'")}','${fmtD(tx.date)}','${fmt(tx.delta)}')">🔒 確定する</button>
+          </div>`;
+    }
+    return `<div class="tx-item${locked ? ' is-locked' : ''}">
+      <div class="tx-body">
+        <div class="tx-left"><div class="tx-type">${tx.label}</div><div class="tx-date">${fmtD(tx.date)}</div></div>
+        <div class="tx-right">
+          <div class="tx-amount ${tx.delta < 0 ? 'neg' : tx.delta > 0 ? 'pos' : ''}">${tx.delta < 0 ? '-' : tx.delta > 0 ? '+' : '±'}${fmt(tx.delta)}</div>
+          <div class="tx-balance">残高 ${fmt(tx._bal)}</div>
+        </div>
+      </div>${cashRow}${bar}</div>`;
+  }).join('');
+}
+
+// --- オーバーレイ ---
+function ask(action, id, label, date, amount) {
+  if (VIEW_MODE) return;
+  pendingId = id; pendingAction = action;
+  if (action === 'del') {
+    document.getElementById('del-meta').textContent = date + '  ' + label + '  ' + amount;
+    document.getElementById('del-overlay').classList.remove('hidden');
+  } else {
+    document.getElementById('lock-meta').textContent = date + '  ' + label + '  ' + amount;
+    document.getElementById('lock-overlay').classList.remove('hidden');
+  }
+}
+function closeOverlays() {
+  pendingId = null; pendingAction = null;
+  document.getElementById('del-overlay').classList.add('hidden');
+  document.getElementById('lock-overlay').classList.add('hidden');
+}
+function confirmDelete() {
+  if (!pendingId || VIEW_MODE) return;
+  uTxs = uTxs.filter(t => t.id !== pendingId);
+  closeOverlays(); save(); render(); renderHistory();
+  toast('記録を削除しました');
+}
+function confirmLock() {
+  if (!pendingId || VIEW_MODE) return;
+  const t = uTxs.find(t => t.id === pendingId);
+  if (t) t.locked = true;
+  closeOverlays(); save(); renderHistory();
+  toast('確定しました（削除不可になりました）');
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+// --- プリセットボタン ---
+function setGA(v) {
+  document.getElementById('meet-amount').value = v;
+  document.querySelectorAll('#gp .pbt').forEach(b => b.classList.remove('sel-green'));
+  const m = {10000:0, 20000:1, 30000:2, 0:3};
+  if (m[v] !== undefined) document.querySelectorAll('#gp .pbt')[m[v]].classList.add('sel-green');
+}
+function syncGP() {
+  const v = parseInt(document.getElementById('meet-amount').value, 10);
+  document.querySelectorAll('#gp .pbt').forEach(b => b.classList.remove('sel-green'));
+  const m = {10000:0, 20000:1, 30000:2, 0:3};
+  if (m[v] !== undefined) document.querySelectorAll('#gp .pbt')[m[v]].classList.add('sel-green');
+}
+function setAA(v) {
+  document.getElementById('cash-amount').value = v;
+  document.querySelectorAll('#ap .pbt').forEach(b => b.classList.remove('sel-amber'));
+  const m = {0:0, 5000:1, 10000:2, 20000:3};
+  if (m[v] !== undefined) document.querySelectorAll('#ap .pbt')[m[v]].classList.add('sel-amber');
+}
+function syncAP() {
+  const v = parseInt(document.getElementById('cash-amount').value, 10);
+  document.querySelectorAll('#ap .pbt').forEach(b => b.classList.remove('sel-amber'));
+  const m = {0:0, 5000:1, 10000:2, 20000:3};
+  if (m[v] !== undefined) document.querySelectorAll('#ap .pbt')[m[v]].classList.add('sel-amber');
+}
+
+// --- フォーム ---
+function openMeetForm() {
+  if (VIEW_MODE) return;
+  closeForms();
+  document.getElementById('meet-amount').value = 20000;
+  document.getElementById('cash-amount').value = 10000;
+  document.querySelectorAll('#gp .pbt').forEach((b,i) => b.classList.toggle('sel-green', i === 1));
+  document.querySelectorAll('#ap .pbt').forEach((b,i) => b.classList.toggle('sel-amber', i === 2));
+  document.getElementById('meet-form').classList.add('open');
+  setTimeout(() => document.getElementById('meet-place').focus(), 100);
+}
+function openLoanForm() {
+  if (VIEW_MODE) return;
+  closeForms();
+  document.getElementById('loan-form').classList.add('open');
+  setTimeout(() => document.getElementById('loan-amount').focus(), 100);
+}
+function closeForms() {
+  document.getElementById('meet-form').classList.remove('open');
+  document.getElementById('loan-form').classList.remove('open');
+}
+
+function recordMeeting() {
+  if (VIEW_MODE) return;
+  const place = document.getElementById('meet-place').value.trim() || '場所未記入';
+  const rawD = parseInt(document.getElementById('meet-amount').value, 10);
+  const delta = isNaN(rawD) || rawD < 0 ? 20000 : rawD;
+  const rawC = parseInt(document.getElementById('cash-amount').value, 10);
+  const cash = isNaN(rawC) || rawC < 0 ? 0 : rawC;
+  uTxs.push({ id:'u'+Date.now(), type:'meet', label:place, delta:-delta, cash, date:new Date().toISOString(), locked:false });
+  document.getElementById('meet-place').value = '';
+  closeForms(); save(); render();
+  toast(delta === 0 ? '会った記録を追加（残高変動なし）' : `会った記録を追加 (-${fmt(delta)}${cash > 0 ? '  現金'+fmt(cash)+'渡し' : ''})`);
+}
+function addLoan() {
+  if (VIEW_MODE) return;
+  const amt = parseInt(document.getElementById('loan-amount').value, 10);
+  const memo = document.getElementById('loan-memo').value.trim() || '追加貸付';
+  if (!amt || amt <= 0) { toast('金額を入力してください'); return; }
+  uTxs.push({ id:'u'+Date.now(), type:'loan', label:memo, delta:amt, cash:0, date:new Date().toISOString(), locked:false });
+  document.getElementById('loan-amount').value = '';
+  document.getElementById('loan-memo').value = '';
+  closeForms(); save(); render();
+  toast(fmt(amt) + ' を追加しました');
+}
+
+// --- 初期化 ---
+function init() {
+  // 閲覧モードならUIを制限
+  if (VIEW_MODE) {
+    document.getElementById('view-banner').style.display = 'block';
+    document.getElementById('edit-buttons').style.display = 'none';
+  }
+  // Firebase起動
+  initFirebase();
+}
+
+init();
+</script>
+</body>
+</html>
