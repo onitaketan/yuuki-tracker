@@ -336,16 +336,40 @@ function saveState(){ try { localStorage.setItem(SKEY, JSON.stringify(userTxs));
 function publishData(){
   try {
     const name = SKEY.indexOf('yuuki') !== -1 ? 'yuuki' : 'sana';
-    const json = JSON.stringify(userTxs, null, 2);
-    const blob = new Blob([json], {type:'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = name + '-data.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    showToast(name + '-data.json 保存 → push-trackers.bat 実行で反映');
+    // 1. データ JSON を保存
+    const jsonBlob = new Blob([JSON.stringify(userTxs, null, 2)], {type:'application/json'});
+    const a1 = document.createElement('a');
+    a1.href = URL.createObjectURL(jsonBlob);
+    a1.download = name + '-data.json';
+    document.body.appendChild(a1);
+    a1.click();
+    document.body.removeChild(a1);
+    setTimeout(() => URL.revokeObjectURL(a1.href), 1000);
+    // 2. push-trackers.bat も一緒に保存（消えた時の保険）
+    const batLines = [
+      '@echo off',
+      'chcp 65001 > nul',
+      'cd /d "%~dp0"',
+      'echo === push-trackers ===',
+      'echo.',
+      'powershell -NoProfile -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $bytes = [System.IO.File]::ReadAllBytes(\'%~dp0push-trackers.ps1\'); $code = [System.Text.UTF8Encoding]::new($false).GetString($bytes); Invoke-Expression $code"',
+      'echo.',
+      'echo === Press any key to close ===',
+      'pause >nul',
+      ''
+    ];
+    const batContent = batLines.join('\r\n');
+    setTimeout(() => {
+      const batBlob = new Blob([batContent], {type:'application/octet-stream'});
+      const a2 = document.createElement('a');
+      a2.href = URL.createObjectURL(batBlob);
+      a2.download = 'push-trackers.bat';
+      document.body.appendChild(a2);
+      a2.click();
+      document.body.removeChild(a2);
+      setTimeout(() => URL.revokeObjectURL(a2.href), 1000);
+    }, 300);
+    showToast(name + '-data.json と push-trackers.bat を保存');
   } catch(e) {
     showToast('保存失敗: ' + e.message);
   }
