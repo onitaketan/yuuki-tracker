@@ -254,6 +254,8 @@ const PRESET_TXS = [
   { id:'p7', type:'meet', label:'大岡山マンション', delta:-20000, cash:10000, date:'2026-02-27T12:00:00.000Z', locked:true },
   { id:'p8', type:'loan', label:'PayPay送金（2026/03/31）', delta:20000, cash:0, date:'2026-03-31T11:22:00.000Z', locked:true },
   { id:'p9', type:'meet', label:'レガリア都立大レジデンス', delta:-20000, cash:10000, date:'2026-04-07T15:02:42.946Z', locked:true, note:'Firebase 残存データから復元' },
+  { id:'p10', type:'loan', label:'PayPay送金（金欠・支払い）', delta:20000, cash:0, date:'2026-04-10T08:08:00.000Z', locked:true, note:'「2万ほど」→ PayPay 受け取りリンク送付' },
+  { id:'p11', type:'loan', label:'PayPay送金（ウーバー・体調不良）', delta:10000, cash:0, date:'2026-05-02T11:43:00.000Z', locked:true, note:'「1万かしていただけないでしょうか」→「10000円はぺいぺいでいい？」→ PayPay' },
 ];
 
 let userTxs=[], currentFilter='all', pendingId=null, pendingAction=null;
