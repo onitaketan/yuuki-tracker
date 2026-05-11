@@ -245,17 +245,22 @@ const TOTAL_LOAN_REF = 447000;      // 累計貸付額（参考表示）
 const MEET_UNIT = 10000;            // 1回当たり減額の標準値（yuukiは控えめ）
 const SKEY = 'yuuki-tracker-data-v1';
 
-// 起点までの集計（表示のみ）
+// PRESET_TXS：2022〜2024 は累計サマリー（履歴表示のみ）、2025以降は個別エントリで残高反映
 const PRESET_TXS = [
-  { id:'y-summary', type:'meet-summary', label:'過去の集計（〜2024/02/12 確定）', delta:0, cash:0, date:'2024-02-11T00:00:00.000Z', locked:true, note:'累計貸付 ¥447,000 / 会った 9+7回（-¥180,000 減額済）/ 開始時残高 ¥327,000。それ以前の個別履歴はこの起点に集約。' },
+  // ── 2022/04〜2024/12 累計（表示のみ・残高計算には不参加。残高 ¥327,000 を期末時点として維持） ──
+  { id:'y-summary-2024', type:'meet-summary', label:'2022/04〜2024/12 累計（最終残高 ¥327,000）', delta:0, cash:0, date:'2024-12-31T23:59:59.000Z', locked:true, displayOnly:true, note:'2022/04/10 ¥200,000 貸付を皮切りに、追加貸付（+3万・+10万・+4万 等）・返済（-2万・-4万 等）・面談（9+7+5回）を経て、2024年末時点の残高 ¥327,000。詳細は LINE 履歴参照。' },
+  // ── 2025年以降の個別エントリ（残高計算に反映） ──
+  { id:'p6', type:'meet', label:'秋葉原 APAホテル', delta:-20000, cash:10000, date:'2025-09-08T12:00:00.000Z', locked:true },
+  { id:'p7', type:'meet', label:'大岡山マンション', delta:-20000, cash:10000, date:'2026-02-27T12:00:00.000Z', locked:true },
+  { id:'p8', type:'loan', label:'PayPay送金（2026/03/31）', delta:20000, cash:0, date:'2026-03-31T11:22:00.000Z', locked:true },
+  { id:'p9', type:'meet', label:'レガリア都立大レジデンス', delta:-20000, cash:10000, date:'2026-04-07T15:02:42.946Z', locked:true, note:'Firebase 残存データから復元' },
 ];
 
 let userTxs=[], currentFilter='all', pendingId=null, pendingAction=null;
 let isViewer=false;
 
 function computeState(){
-  const originDate = new Date(ORIGIN_DATE);
-  const postOriginPresets = PRESET_TXS.filter(t => new Date(t.date) >= originDate);
+  const postOriginPresets = PRESET_TXS.filter(t => !t.displayOnly);
   const userSorted = [...userTxs].sort((a,b)=>new Date(a.date)-new Date(b.date));
   const allPost = [...postOriginPresets, ...userSorted].sort((a,b)=>new Date(a.date)-new Date(b.date));
   let running = ORIGIN_BAL;
