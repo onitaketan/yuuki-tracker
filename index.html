@@ -183,6 +183,7 @@ input, textarea { -webkit-user-select: auto; user-select: auto; }
 </div>
 </div>
 
+<button class="btn-share" id="btn-publish" onclick="publishData()" style="background:#E1F5EE;color:#0F6E56;border:0.5px solid #9FE1CB">💾 ゆうきに公開（最新を反映）</button>
 <button class="btn-share" id="btn-share" onclick="shareLink()">📤 ゆうきに共有リンクを送る</button>
 <button class="btn-history" onclick="showHistory()">過去の履歴を見る →</button>
 </div>
@@ -276,6 +277,17 @@ function computeState(){
 
 function loadState(){
   const params = new URLSearchParams(location.search);
+  // ライブモード（?live=1）: GitHub の data.json から最新を取得
+  if (params.has('live')) {
+    isViewer = true;
+    enterViewerMode();
+    fetch('./data.json?t=' + Date.now())
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { userTxs = Array.isArray(data) ? data : []; render(); })
+      .catch(() => { userTxs = []; render(); });
+    return;
+  }
+  // 共有URLモード（?d=...）
   const shared = params.get('d');
   if (shared) {
     try {
@@ -286,6 +298,7 @@ function loadState(){
     render();
     return;
   }
+  // 管理者モード（localStorage）
   try { const d = localStorage.getItem(SKEY); if (d) userTxs = JSON.parse(d); } catch(e){}
   render();
 }
@@ -294,7 +307,7 @@ function enterViewerMode(){
   isViewer = true;
   document.getElementById('banner-owner').style.display = 'none';
   document.getElementById('banner-viewer').style.display = 'flex';
-  document.querySelectorAll('.btn-row, .add-form, #btn-share').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.btn-row, .add-form, #btn-share, #btn-publish').forEach(el => el.style.display = 'none');
 }
 
 function shareLink(){
@@ -319,6 +332,24 @@ function fallbackCopy(text){
 }
 
 function saveState(){ try { localStorage.setItem(SKEY, JSON.stringify(userTxs)); } catch(e){} }
+
+function publishData(){
+  try {
+    const name = SKEY.indexOf('yuuki') !== -1 ? 'yuuki' : 'sana';
+    const json = JSON.stringify(userTxs, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name + '-data.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    showToast(name + '-data.json 保存 → push-trackers.bat 実行で反映');
+  } catch(e) {
+    showToast('保存失敗: ' + e.message);
+  }
+}
 
 const fmt = n => '¥' + Math.abs(n).toLocaleString('ja-JP');
 const fmtSigned = n => (n<0?'-':n>0?'+':'') + fmt(n);
